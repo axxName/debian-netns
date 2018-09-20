@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+if [ -n "${IF_POST_DOWN_DELETE_NETNS}" -a -n "${IF_PEER_NETNS}" ]
+then
+
+    # Delete netns if it exist
+    if ! (ip netns list | grep -wx "^${IF_PEER_NETNS}"); then
+        if [ $(echo "${IF_POST_DOWN_DELETE_NETNS}" | tr '[:upper:]' '[:lower:]') = "yes" ]; then
+            ip netns delete ${IF_PEER_NETNS}
+        fi
+    fi
+fi
