@@ -10,6 +10,7 @@ auto ns0
 iface ns0 inet manual
     peer-netns myns
     peer-iface eth0
+    post-down-delete-netns yes
 ```
 Running `ifup ns0` will then create the `myns` network namespace and a veth
 pair which joins `ns0` in the "real world" to `eth0` inside the namespace.
@@ -22,6 +23,7 @@ iface ns0 inet manual
     peer-iface eth0
     veth-mode l3
     configure-interfaces yes
+    post-down-delete-netns yes
 ```
 `veth-mode l3` will configure the veth pair as a L3 point-to-point link
 (meaning that you can then add routes with the next-hop set to the
