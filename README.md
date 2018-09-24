@@ -42,12 +42,12 @@ interface, e.g., `ip route add 1.2.3.0/24 dev ns0`).
 
 auto eth0
 iface eth0 inet static
-       address 1.2.3.1
+       address 1.2.3.4
        netmask 255.255.255.0
        network 1.2.3.0
        dns-nameservers 8.8.8.8
-       post-up ip route add 0.0.0.0/0 dev eth0
-       pre-down ip route del 0.0.0.0/0 dev eth0
+       post-up ip route add default dev eth0
+       pre-down ip route del default dev eth0
 ```
 
 ### Thoughts
