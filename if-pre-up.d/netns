@@ -4,43 +4,45 @@ set -e
 
 if [ -n "${IF_PEER_NETNS}" -a -n "${IF_PEER_IFACE}" ]
 then
-	# Create netns if it doesn't already exist, and bring up the loopback
-	if ! (ip netns list | grep -qw "^${IF_PEER_NETNS}")
-	then
-		mkdir -p /run/network.${IF_PEER_NETNS}
-		rm -rf /run/network.${IF_PEER_NETNS}/*
-		ip netns add ${IF_PEER_NETNS}
-		ip netns exec ${IF_PEER_NETNS} ip link set lo up
-	fi
+        # Create netns if it doesn't already exist, and bring up the loopback
+        if ! (ip netns list | grep -qw "^${IF_PEER_NETNS}")
+        then
+                mkdir -p /run/network.${IF_PEER_NETNS}
+                rm -rf /run/network.${IF_PEER_NETNS}/*
+                ip netns add ${IF_PEER_NETNS}
+                ip netns exec ${IF_PEER_NETNS} ip link set lo up
+        fi
 
-	# Add the veth pair
-	ip link add ${IFACE} type veth peer name ${IFACE}r
+        if ! (ip link show  | grep -q ${IFACE}) ; then
+                # Add the veth pair
+                ip link add ${IFACE} type veth peer name ${IFACE}r
 
-	# Put the remote end into the netns
-	ip link set ${IFACE}r netns ${IF_PEER_NETNS}
+                # Put the remote end into the netns
+                ip link set ${IFACE}r netns ${IF_PEER_NETNS}
 
-	# Rename the remote end
-	ip netns exec ${IF_PEER_NETNS} ip link set ${IFACE}r name ${IF_PEER_IFACE}
+                # Rename the remote end
+                ip netns exec ${IF_PEER_NETNS} ip link set ${IFACE}r name ${IF_PEER_IFACE}
+        fi
 
-	case ${IF_VETH_MODE} in
-		l3|layer3|layer-3)
-			# Disable ARP on both ends of the veth
-			ip link set ${IFACE} arp off
-			ip netns exec ${IF_PEER_NETNS} ip link set ${IF_PEER_IFACE} arp off
+        case ${IF_VETH_MODE} in
+                l3|layer3|layer-3)
+                        # Disable ARP on both ends of the veth
+                        ip link set ${IFACE} arp off
+                        ip netns exec ${IF_PEER_NETNS} ip link set ${IF_PEER_IFACE} arp off
 
-			# Make the MAC addresses on both ends the same
-			ip netns exec ${IF_PEER_NETNS} ip link set ${IF_PEER_IFACE} address $(cat /sys/class/net/${IFACE}/address)
-			;;
-		l2|layer2|layer-2)
-			# No additional config for layer 2 mode
-			;;
-		'')
-			# Don't do anything
-			;;
-		*)
-			echo "Unrecognized veth mode ${IF_VETH_MODE}" 1>&2
-			exit 1
-			;;
-	esac
+                        # Make the MAC addresses on both ends the same
+                        ip netns exec ${IF_PEER_NETNS} ip link set ${IF_PEER_IFACE} address $(cat /sys/class/net/${IFACE}/address)
+                        ;;
+                l2|layer2|layer-2)
+                        # No additional config for layer 2 mode
+                        ;;
+                '')
+                        # Don't do anything
+                        ;;
+                *)
+                        echo "Unrecognized veth mode ${IF_VETH_MODE}" 1>&2
+                        exit 1
+                        ;;
+        esac
 fi
 
