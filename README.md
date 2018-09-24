@@ -6,6 +6,8 @@ Debian-like systems.  Copy them into the corresponding directories under
 
 To configure a veth pair into a namespace:
 ```
+/etc/network/interfaces:
+
 auto ns0
 iface ns0 inet manual
     peer-netns myns
@@ -17,6 +19,8 @@ pair which joins `ns0` in the "real world" to `eth0` inside the namespace.
 
 There are two more things you can specify:
 ```
+/etc/network/interfaces:
+
 auto ns0
 iface ns0 inet manual
     peer-netns myns
@@ -24,6 +28,8 @@ iface ns0 inet manual
     veth-mode l3
     configure-interfaces yes
     post-down-delete-netns yes
+    post-up ip route add 1.2.3.0/24 dev ns0
+    pre-down ip route del 1.2.3.0/24 dev ns0
 ```
 `veth-mode l3` will configure the veth pair as a L3 point-to-point link
 (meaning that you can then add routes with the next-hop set to the
@@ -31,6 +37,18 @@ interface, e.g., `ip route add 1.2.3.0/24 dev ns0`).
 
 `configure-interfaces yes` will run `ifup -a` (or `ifdown -a`) inside the
 `myns` namespace using interface config from `/etc/network/interfaces.myns`.
+```
+/etc/network/interfaces.myns:
+
+auto eth0
+iface eth0 inet static
+       address 1.2.3.1
+       netmask 255.255.255.0
+       network 1.2.3.0
+       dns-nameservers 8.8.8.8
+       post-up ip route add 0.0.0.0/0 dev eth0
+       pre-down ip route del 0.0.0.0/0 dev eth0
+```
 
 ### Thoughts
 
