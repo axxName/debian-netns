@@ -5,15 +5,14 @@ set -e
 if [ -n "${IF_PEER_NETNS}" -a -n "${IF_PEER_IFACE}" ]
 then
         # Create netns if it doesn't already exist, and bring up the loopback
-        if ! (ip netns list | grep -qw "^${IF_PEER_NETNS}")
-        then
+        if ! (ip netns list | grep -qw "^${IF_PEER_NETNS}"); then
                 mkdir -p /run/network.${IF_PEER_NETNS}
                 rm -rf /run/network.${IF_PEER_NETNS}/*
                 ip netns add ${IF_PEER_NETNS}
                 ip netns exec ${IF_PEER_NETNS} ip link set lo up
         fi
 
-        if ! (ip link show  | grep -q ${IFACE}) ; then
+        if ! (ip link show ${IFACE} > /dev/null 2>&1) ; then
                 # Add the veth pair
                 ip link add ${IFACE} type veth peer name ${IFACE}r
 
@@ -23,6 +22,28 @@ then
                 # Rename the remote end
                 ip netns exec ${IF_PEER_NETNS} ip link set ${IFACE}r name ${IF_PEER_IFACE}
         fi
+
+        for linkpair in ${IF_PEER_LINKS}
+        do
+          hostlink=$(echo $linkpair | awk -F: '{print $1}')
+          nslink=$(echo $linkpair | awk -F: '{print $2}')
+
+          if ! ( (ip link show $hostlink && ip link show $nslink)  > /dev/null 2>&1) ; then
+                # Add the veth pair
+                ip link add ${hostlink} type veth peer name ${hostlink}r
+
+                # Put the remote end into the netns
+                ip link set ${hostlink}r netns ${IF_PEER_NETNS}
+
+                # Rename the remote end
+                ip netns exec ${IF_PEER_NETNS} ip link set ${hostlink}r name ${nslink}
+
+                #Bring host link UP
+                ip link set ${hostlink} up
+          fi
+
+        done
+
 
         case ${IF_VETH_MODE} in
                 l3|layer3|layer-3)
