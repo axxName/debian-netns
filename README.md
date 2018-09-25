@@ -13,6 +13,7 @@ iface ns0 inet manual
     peer-netns myns
     peer-iface eth0
     post-down-delete-netns yes
+    peer-links ns3eth1:eth1 ns3eth2:eth2 ns3eth3:eth3
 ```
 Running `ifup ns0` will then create the `myns` network namespace and a veth
 pair which joins `ns0` in the "real world" to `eth0` inside the namespace.
@@ -29,7 +30,7 @@ iface ns0 inet manual
     configure-interfaces yes
     post-down-delete-netns yes
     post-up ip route add 1.2.3.0/24 dev ns0
-    pre-down ip route del 1.2.3.0/24 dev ns0
+    peer-links ns3eth1:eth1 ns3eth2:eth2 ns3eth3:eth3
 ```
 `veth-mode l3` will configure the veth pair as a L3 point-to-point link
 (meaning that you can then add routes with the next-hop set to the
@@ -47,7 +48,11 @@ iface eth0 inet static
        network 1.2.3.0
        dns-nameservers 8.8.8.8
        post-up ip route add default dev eth0
-       pre-down ip route del default dev eth0
+
+auto eth3
+iface eth3 inet static
+       address 11.22.33.44
+       netmask 255.255.255.0
 ```
 
 ### Thoughts
