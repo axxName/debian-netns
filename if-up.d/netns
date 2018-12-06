@@ -15,7 +15,7 @@ then
 			unshare -m /bin/sh <<-EOF
 				mount --make-rprivate /
 				mount --bind /run/network.${IF_PEER_NETNS} /run/network
-				ip netns exec ${IF_PEER_NETNS} ifup -i /etc/network/interfaces.${IF_PEER_NETNS} -a
+				ip netns exec ${IF_PEER_NETNS} ifup -i /etc/network/netns/${IF_PEER_NETNS}/interfaces -a
 			EOF
 			;;
 	esac
