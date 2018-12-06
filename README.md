@@ -37,9 +37,9 @@ iface ns0 inet manual
 interface, e.g., `ip route add 1.2.3.0/24 dev ns0`).
 
 `configure-interfaces yes` will run `ifup -a` (or `ifdown -a`) inside the
-`myns` namespace using interface config from `/etc/network/interfaces.myns`.
+`myns` namespace using interface config from `/etc/network/netns/myns/interfaces`.
 ```
-/etc/network/interfaces.myns:
+/etc/network/netns/myns/interfaces:
 
 auto eth0
 iface eth0 inet static
