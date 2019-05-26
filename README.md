@@ -10,10 +10,10 @@ To configure a veth pair into a namespace:
 
 auto ns0
 iface ns0 inet manual
-    peer-netns myns
-    peer-iface eth0
-    post-down-delete-netns yes
-    peer-links ns3eth1:eth1 ns3eth2:eth2 ns3eth3:eth3
+    netns myns
+      netns-host-peer-gw eth0
+      post-down-delete-netns yes
+      netns-host-peer-links ns3eth1:eth1 ns3eth2:eth2 ns3eth3:eth3
 ```
 Running `ifup ns0` will then create the `myns` network namespace and a veth
 pair which joins `ns0` in the "real world" to `eth0` inside the namespace.
@@ -24,19 +24,19 @@ There are two more things you can specify:
 
 auto ns0
 iface ns0 inet manual
-    peer-netns myns
-    peer-iface eth0
-    veth-mode l3
-    configure-interfaces yes
-    post-down-delete-netns yes
-    post-up ip route add 1.2.3.0/24 dev ns0
-    peer-links ns3eth1:eth1 ns3eth2:eth2 ns3eth3:eth3
+    netns myns
+      netns-host-peer-gw eth0
+      netns-gw-veth-mode l3
+      netns-configure-interfaces yes
+      post-down-delete-netns yes
+      netns-host-peer-links ns3eth1:eth1 ns3eth2:eth2 ns3eth3:eth3
+    post-up ip route add 1.2.3.0/24 dev ns0    
 ```
-`veth-mode l3` will configure the veth pair as a L3 point-to-point link
+`netns-gw-veth-mode l3` will configure the veth pair as a L3 point-to-point link
 (meaning that you can then add routes with the next-hop set to the
 interface, e.g., `ip route add 1.2.3.0/24 dev ns0`).
 
-`configure-interfaces yes` will run `ifup -a` (or `ifdown -a`) inside the
+`netns-configure-interfaces yes` will run `ifup -a` (or `ifdown -a`) inside the
 `myns` namespace using interface config from `/etc/network/netns/myns/interfaces`.
 ```
 /etc/network/netns/myns/interfaces:
@@ -47,7 +47,7 @@ iface eth0 inet static
        netmask 255.255.255.0
        network 1.2.3.0
        dns-nameservers 8.8.8.8
-       post-up ip route add default dev eth0
+       post-up ip route add default dev eth0 metric 100
 
 auto eth3
 iface eth3 inet static
