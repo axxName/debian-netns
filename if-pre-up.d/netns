@@ -2,28 +2,56 @@
 
 set -e
 
-if [ -n "${IF_PEER_NETNS}" -a -n "${IF_PEER_IFACE}" ]
+if [ -n "${IF_NETNS}" ]
 then
+
         # Create netns if it doesn't already exist, and bring up the loopback
-        if ! (ip netns list | grep -qw "^${IF_PEER_NETNS}"); then
-                mkdir -p /run/network.${IF_PEER_NETNS}
-                rm -rf /run/network.${IF_PEER_NETNS}/*
-                ip netns add ${IF_PEER_NETNS}
-                ip netns exec ${IF_PEER_NETNS} ip link set lo up
+        if ! (ip netns list | grep -qw "^${IF_NETNS}"); then
+                mkdir -p /run/network.${IF_NETNS}
+                rm -rf /run/network.${IF_NETNS}/*
+                ip netns add ${IF_NETNS}
+                ip netns exec ${IF_NETNS} ip link set lo up
         fi
+
+
+    if [ -n "${IF_NETNS_HOST_PEER_GW}" ]
+    then
 
         if ! (ip link show ${IFACE} > /dev/null 2>&1) ; then
                 # Add the veth pair
                 ip link add ${IFACE} type veth peer name ${IFACE}r
 
                 # Put the remote end into the netns
-                ip link set ${IFACE}r netns ${IF_PEER_NETNS}
+                ip link set ${IFACE}r netns ${IF_NETNS}
 
                 # Rename the remote end
-                ip netns exec ${IF_PEER_NETNS} ip link set ${IFACE}r name ${IF_PEER_IFACE}
+                ip netns exec ${IF_NETNS} ip link set ${IFACE}r name ${IF_NETNS_HOST_PEER_GW}
         fi
 
-        for linkpair in ${IF_PEER_LINKS}
+        case ${IF_NETNS_GW_VETH_MODE} in
+                l3|layer3|layer-3)
+                        # Disable ARP on both ends of the veth
+                        ip link set ${IFACE} arp off
+                        ip netns exec ${IF_NETNS} ip link set ${IF_NETNS_HOST_PEER_GW} arp off
+
+                        # Make the MAC addresses on both ends the same
+                        ip netns exec ${IF_NETNS} ip link set ${IF_NETNS_HOST_PEER_GW} address $(cat /sys/class/net/${IFACE}/address)
+                        ;;
+                l2|layer2|layer-2)
+                        # No additional config for layer 2 mode
+                        ;;
+                '')
+                        # Don't do anything
+                        ;;
+                *)
+                        echo "Unrecognized veth mode ${IF_NETNS_GW_VETH_MODE}" 1>&2
+                        exit 1
+                        ;;
+        esac
+    fi #${IF_NETNS_GW_VETH_MODE}
+
+
+    for linkpair in ${IF_NETNS_HOST_PEER_LINKS}
         do
           hostlink=$(echo $linkpair | awk -F: '{print $1}')
           nslink=$(echo $linkpair | awk -F: '{print $2}')
@@ -33,37 +61,15 @@ then
                 ip link add ${hostlink} type veth peer name ${hostlink}r
 
                 # Put the remote end into the netns
-                ip link set ${hostlink}r netns ${IF_PEER_NETNS}
+                ip link set ${hostlink}r netns ${IF_NETNS}
 
                 # Rename the remote end
-                ip netns exec ${IF_PEER_NETNS} ip link set ${hostlink}r name ${nslink}
+                ip netns exec ${IF_NETNS} ip link set ${hostlink}r name ${nslink}
 
                 #Bring host link UP
                 ip link set ${hostlink} up
           fi
+    done
 
-        done
 
-
-        case ${IF_VETH_MODE} in
-                l3|layer3|layer-3)
-                        # Disable ARP on both ends of the veth
-                        ip link set ${IFACE} arp off
-                        ip netns exec ${IF_PEER_NETNS} ip link set ${IF_PEER_IFACE} arp off
-
-                        # Make the MAC addresses on both ends the same
-                        ip netns exec ${IF_PEER_NETNS} ip link set ${IF_PEER_IFACE} address $(cat /sys/class/net/${IFACE}/address)
-                        ;;
-                l2|layer2|layer-2)
-                        # No additional config for layer 2 mode
-                        ;;
-                '')
-                        # Don't do anything
-                        ;;
-                *)
-                        echo "Unrecognized veth mode ${IF_VETH_MODE}" 1>&2
-                        exit 1
-                        ;;
-        esac
 fi
-
