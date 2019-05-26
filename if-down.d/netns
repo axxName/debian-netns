@@ -2,22 +2,21 @@
 
 set -e
 
-if [ -n "${IF_PEER_NETNS}" -a -n "${IF_PEER_IFACE}" ]
+if [ -n "${IF_NETNS}" -a -n "${IF_NETNS_HOST_PEER_GW}" ]
 then
-	# Take down the remote end of the veth
-	ip netns exec ${IF_PEER_NETNS} ip link set ${IF_PEER_IFACE} down
+        # Take down the remote end of the veth
+        ip netns exec ${IF_NETNS} ip link set ${IF_NETNS_HOST_PEER_GW} down
 
-	case "${IF_CONFIGURE_INTERFACES}" in
-		true|yes|on)
-			# Ifdown the interfaces inside the netns and inside
-			# a mount namespace with /run/network.nsname mounted
-			# on /run/network
-			unshare -m /bin/sh <<-EOF
-				mount --make-rprivate /
-				mount --bind /run/network.${IF_PEER_NETNS} /run/network
-				ip netns exec ${IF_PEER_NETNS} ifdown -i /etc/network/netns/${IF_PEER_NETNS}/interfaces -a
-			EOF
-			;;
-	esac
+        case "${IF_NETNS_CONFIGURE_INTERFACES}" in
+                true|yes|on)
+                        # Ifdown the interfaces inside the netns and inside
+                        # a mount namespace with /run/network.nsname mounted
+                        # on /run/network
+                        unshare -m /bin/sh <<-EOF
+                                mount --make-rprivate /
+                                mount --bind /run/network.${IF_NETNS} /run/network
+                                ip netns exec ${IF_NETNS} ifdown -i /etc/network/netns/${IF_NETNS}/interfaces -a
+                        EOF
+                        ;;
+        esac
 fi
-
