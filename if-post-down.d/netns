@@ -2,13 +2,13 @@
 
 set -e
 
-if [ -n "${IF_POST_DOWN_DELETE_NETNS}" -a -n "${IF_PEER_NETNS}" ]
-then
 
+if [ -n "${IF_POST_DOWN_DELETE_NETNS}" -a -n "${IF_NETNS}" ]
+then
     # Delete netns if it exist
-    if ! (ip netns list | grep -qw "^${IF_PEER_NETNS}"); then
+    if (ip netns list | grep -qw "^${IF_NETNS}"); then
         if [ $(echo "${IF_POST_DOWN_DELETE_NETNS}" | tr '[:upper:]' '[:lower:]') = "yes" ]; then
-            ip netns delete ${IF_PEER_NETNS}
+            ip netns delete ${IF_NETNS}
         fi
     fi
 fi
